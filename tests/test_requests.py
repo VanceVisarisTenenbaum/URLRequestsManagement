@@ -62,8 +62,26 @@ class SessionManager():
         """
         return None
 
-    def __add_session__(self, mode, url, **kwargs):
+    def __add_session__(self, mode, **kwargs):
+        hasher = h.sha1(usedforsecurity=False)
+        h.update()
         return None
+
+    def __get_header_data__(self, mode, dictionary):
+        request_header_params = [
+            'auth',
+            'cookies',
+            'headers',
+        ]
+        aiohttp_header_params = []
+
+        if mode == 'sync':
+            keywords = request_header_params
+        elif mode == 'async':
+            keywords = aiohttp_header_params
+
+        new_dict = {key: dictionary[key] for key in keywords}
+        return new_dict
 
 
 class DomainManager():
