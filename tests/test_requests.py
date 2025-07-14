@@ -15,6 +15,7 @@ import yarl
 import typing as t
 import annotated_types as at
 import hashlib as h
+import queue as q
 
 
 def str_to_url(url: str) -> yarl.URL:
@@ -274,7 +275,7 @@ class SessionManager():
         return session
 
     def get_all_sessions(self):
-        "Returns teh private attribute sessions. The dict with the sessions."
+        "Returns the private attribute sessions. The dict with the sessions."
         return self.__sessions
 
     async def __close_all_sessions_private__(self):
@@ -319,6 +320,29 @@ class DomainManager():
         self.__domains = dict()
         return None
 
+    def __add_domain__(self, url):
+        """
+        Extracts the domain from the url and adds the domain if needed
+
+        Parameters
+        ----------
+        url : str | yarl.URL
+            A url with a domain.
+
+        Returns
+        -------
+        None.
+
+        """
+        url = yarl.URL(url)
+        host = url.host
+        try:
+            self.__domains[host]
+        except KeyError:
+            self.__domains[host] = {
+                'queue': q.Queue()
+            }
+        return None
 
 
 
