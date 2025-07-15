@@ -23,10 +23,6 @@ def str_to_url(url: str) -> yarl.URL:
     return yarl.URL(url)
 
 
-str_to_url('https://www.python.org/~guido?arg=1#frag')
-
-
-
 class SessionManager():
     # The session manager, takes care of handling each available session
     # wether it is an async or sync requests session.
@@ -320,6 +316,23 @@ class DomainManager():
         self.__domains = dict()
         return None
 
+    def __get_host__(self, url):
+        """
+        Gets the host (or domain) of a url.
+
+        Parameters
+        ----------
+        url : str | yarl.URL
+            URL to get the host from
+
+        Returns
+        -------
+        str
+            Host of a url.
+
+        """
+        return yarl.URL(url).host
+
     def __add_domain__(self, url):
         """
         Extracts the domain from the url and adds the domain if needed
@@ -334,8 +347,7 @@ class DomainManager():
         None.
 
         """
-        url = yarl.URL(url)
-        host = url.host
+        host = self.__get_host__(url)
         try:
             self.__domains[host]
         except KeyError:
@@ -344,14 +356,48 @@ class DomainManager():
             }
         return None
 
+    def add_url(self, url):
+        """
+        Adds a url to the proper queue.
+
+        Parameters
+        ----------
+        url : str | yarl.url
+            url to add.
+
+        Returns
+        -------
+        None.
+
+        """
+        host = self.__get_host__(url)
+        self.__add_domain__(url)
+        self.__domains[host]['queue'].put(yarl.URL(url), False)
+        # we shouldn't get a Full error since there is no limit.
+        return None
+
+    def get_url(self, host):
+        """
+        Gets the latest url from the specified host.
+
+        Parameters
+        ----------
+        host : str
+            host of where you want to get the url from.
+
+        Returns
+        -------
+        yarl.URL
+            The first url in the queue. None if it is empty.
+
+        """
+        try:
+            return self.__domains[host]['queue'].get(False)
+        except q.Empty:
+            return None
 
 
 
-
-
-SM = SessionManager()
-SM.get_session('sync', url='https://www.ine.es/dyngs/DAB/index.htm?cid=1100', method='GET')
-SM.get_session('async', url='https://www.ine.es/dyngs/DAB/index.htm?cid=1100', method='GET')
 
 url = yarl.URL('https://www.ine.es/dyngs/DAB/index.htm?cid=1100')
-b = yarl.URL(url)
+
