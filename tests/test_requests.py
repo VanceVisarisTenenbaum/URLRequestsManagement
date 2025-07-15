@@ -16,6 +16,7 @@ import typing as t
 import annotated_types as at
 import hashlib as h
 import queue as q
+import time
 
 
 def str_to_url(url: str) -> yarl.URL:
@@ -37,7 +38,7 @@ class SessionManager():
                 'custom-metadata': dict()
             }
         }
-        self.__sessions_initial_time = None
+        self.__last_session_gathered_time = None
         """
         sessions is a private attribute. It is a dict used to manage all the
         sessions that might be needed.
@@ -54,8 +55,10 @@ class SessionManager():
                 while custom is used to handle the sessions that require any of
                 the previously commented attributes.
 
-        sessions_initial_time is an attribute used to store the starting time
-        of the last request made.
+        last_session_gathered_time is an attribute used to store the starting
+        time of the last time a session was collected.
+            This allows to close the sessions automatically if no requests
+            are made.
         """
         return None
 
@@ -268,6 +271,12 @@ class SessionManager():
         header_data = self.__get_header_data__(mode, request_kwargs)
         hash_val = self.__get_hash_value_of_dict__(header_data)
         session = self.__select_session__(mode, hash_val)
+
+        """
+        We add the last time a session was gathered, and reset the last time
+        a session
+        """
+        self.__last_session_gathered_time = time.time()
         return session
 
     def get_all_sessions(self):
@@ -275,6 +284,7 @@ class SessionManager():
         return self.__sessions
 
     async def __close_all_sessions_private__(self):
+        "Closes all sessions, private because it needs to be async."
         for mode, data in self.__sessions.items():
             # mode is for sync, async start of the dict
             # data is always a dict
@@ -303,9 +313,17 @@ class SessionManager():
 
     def close_all_sessions(self):
         'Closes all sessions.'
-        # Since this function is meant to be run in the backgraound and when
-        # the system decides and is not meant to be called by the user.
+        # This function isn't needed, but it is here to close all sessions
+        # if the user needs it.
         asyncio.create_task(self.__close_all_sessions_private__())
+        return None
+
+    def __close_all_sessions_loop__(self):
+        "Closes all sessions if condition is met."
+        if self.__last_session_gathered_time is None:
+            return None
+        elif (time.time() - self.__last_session_gathered_time) == 600:
+            self.close_all_sessions()
         return None
 
 
@@ -397,7 +415,25 @@ class DomainManager():
             return None
 
 
+class RequestsManager():
+    # Request manager handles allows you to make requests and or schedule them.
+    # both sync or async.
 
+    def __init__(self):
 
-url = yarl.URL('https://www.ine.es/dyngs/DAB/index.htm?cid=1100')
+        self.__SM = SessionManager()
+        self.__DM = DomainManager()
 
+        return None
+
+    def sync_request(self, **request_kwargs):
+        "Makes a request using requests package."
+        S = self.__SM.get_session('sync', **request_kwargs)
+        response = S.request(**request_kwargs)
+        return response
+
+    async def async_request(self, **aiohttp_kwargs):
+        "Makes a request async using aiohttp package."
+        S = self.__SM.get_session('async', **aiohttp_kwargs)
+        response = await S.request(**aiohttp_kwargs)
+        return response
