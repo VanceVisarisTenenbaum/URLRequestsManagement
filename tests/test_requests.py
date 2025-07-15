@@ -19,11 +19,6 @@ import queue as q
 import time
 
 
-def str_to_url(url: str) -> yarl.URL:
-    # yarl already checks types
-    return yarl.URL(url)
-
-
 class SessionManager():
     # The session manager, takes care of handling each available session
     # wether it is an async or sync requests session.
