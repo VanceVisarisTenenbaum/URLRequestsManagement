@@ -34,6 +34,7 @@ class SessionManager():
             }
         }
         self.__last_session_gathered_time = None
+        self.__loop_running = False
         """
         sessions is a private attribute. It is a dict used to manage all the
         sessions that might be needed.
@@ -54,6 +55,9 @@ class SessionManager():
         time of the last time a session was collected.
             This allows to close the sessions automatically if no requests
             are made.
+
+        loop_running is a bool to check if the loop to close all session
+        is up and running.
         """
         return None
 
@@ -272,6 +276,11 @@ class SessionManager():
         a session
         """
         self.__last_session_gathered_time = time.time()
+        # This function is called when a request will be made.
+        # So we start the loop to close the sessions automatically when
+        # necessary if it not already running.
+        if not self.__loop_running:
+            self.__close_all_sessions_loop__()
         return session
 
     def get_all_sessions(self):
@@ -314,14 +323,18 @@ class SessionManager():
         return None
 
     async def __close_all_sessions_loop__(self):
-        """Closes all sessions if condition is met."""
-        if self.__last_session_gathered_time is None:
-            return None
-        elif (time.time() - self.__last_session_gathered_time) == 600:
-            await self.__close_all_sessions_private__()
-        else:
-            await asyncio.sleep(600)
-            self.__close_all_sessions_loop__()
+        """Closes all sessions automatically if condition is met."""
+        self.__loop_running = True
+        while True:
+            if self.__last_session_gathered_time is None:
+                self.__loop_running = False
+                return None
+            elif (time.time() - self.__last_session_gathered_time) == 600:
+                await self.__close_all_sessions_private__()
+                self.__loop_running = True
+                return None
+            else:
+                await asyncio.sleep(600)
         return None
 
 
