@@ -442,3 +442,8 @@ class RequestsManager():
         S = self.__SM.get_session('async', **aiohttp_kwargs)
         response = await S.request(**aiohttp_kwargs)
         return response
+
+    def close_all_sessions(self):
+        """Closes all sessions."""
+        self.__SM.close_all_sessions()
+        return None
