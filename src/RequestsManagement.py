@@ -347,6 +347,7 @@ class DomainManager():
 
     def __init__(self):
         self.__domains = dict()
+        self.__minimum_sleep_time = 0.05
         return None
 
     def __get_host__(self, url):
@@ -385,9 +386,35 @@ class DomainManager():
             self.__domains[host]
         except KeyError:
             self.__domains[host] = {
-                'queue': q.Queue()
+                'queue': q.Queue(),
+                'last_time': 0
             }
         return None
+
+
+    def get_sleep_time(self, url: str):
+        """
+        Reads the last time a domain was asked to and calculates how much
+        sleep time is needed to wait till making next request.
+
+        Parameters
+        ----------
+        url : str
+            URL where you will make the request.
+
+        Returns
+        -------
+        sleep_time : TYPE
+            DESCRIPTION.
+
+        """
+        host = host = self.__get_host__(url)
+        last_time = self.__domain[host]['last_time']
+        delta_current = time.time() - last_time
+        if delta_current > self.__minimum_sleep_time:
+            return self.__minimum_sleep_time
+        return 0
+
 
     def add_url(self, url):
         """
@@ -444,16 +471,20 @@ class RequestsManager():
 
         return None
 
-    def sync_request(self, **request_kwargs):
+    def sync_request(self, method, url, **request_kwargs):
         """Makes a request using requests package."""
         S = self.__SM.get_session('sync', **request_kwargs)
-        response = S.request(**request_kwargs)
+        sleep_time = self.__DM.get_sleep_time(url)
+        time.sleep(sleep_time)
+        response = S.request(method, url, **request_kwargs)
         return response
 
-    async def async_request(self, **aiohttp_kwargs):
+    async def async_request(self, method, url, **aiohttp_kwargs):
         """Makes a request async using aiohttp package."""
         S = self.__SM.get_session('async', **aiohttp_kwargs)
-        response = await S.request(**aiohttp_kwargs)
+        sleep_time = self.__DM.get_sleep_time(url)
+        await asyncio.sleep(sleep_time)
+        response = await S.request(method, url, **aiohttp_kwargs)
         return response
 
     def close_all_sessions(self):
