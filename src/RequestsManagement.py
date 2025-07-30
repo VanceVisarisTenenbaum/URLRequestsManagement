@@ -391,6 +391,10 @@ class DomainManager():
             }
         return None
 
+    def __update_time(self, host: str):
+        """Updates the last time a request was made to the host of the url."""
+        self.__domains[host]['last_time'] = time.time()
+        return None
 
     def get_sleep_time(self, url: str):
         """
@@ -412,10 +416,10 @@ class DomainManager():
         self.__add_domain__(url)
         last_time = self.__domains[host]['last_time']
         delta_current = time.time() - last_time
+        self.__update_time(host)
         if delta_current > self.__minimum_sleep_time:
             return self.__minimum_sleep_time
         return 0
-
 
     def add_url(self, url):
         """
@@ -429,7 +433,6 @@ class DomainManager():
         Returns
         -------
         None.
-
         """
         host = self.__get_host__(url)
         self.__add_domain__(url)
