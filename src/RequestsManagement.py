@@ -408,7 +408,8 @@ class DomainManager():
             DESCRIPTION.
 
         """
-        host = host = self.__get_host__(url)
+        host = self.__get_host__(url)
+        self.__add_domain__(url)
         last_time = self.__domains[host]['last_time']
         delta_current = time.time() - last_time
         if delta_current > self.__minimum_sleep_time:
