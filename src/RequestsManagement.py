@@ -465,15 +465,21 @@ class RequestsManager():
     It can be both sync or async.
     """
 
-    def __init__(self, sleep_time: int | float = 0.25):
+    def __init__(self,
+                 sleep_time: int | float = 0.25,
+                 print_url: bool = False
+                 ):
 
         self.__SM = SessionManager()
         self.__DM = DomainManager(sleep_time)
 
+        self.__print_url = print_url
         return None
 
     def sync_request(self, method, url, **request_kwargs):
         """Makes a request using requests package."""
+        if self.__print_url:
+            print(url)
         S = self.__SM.get_session('sync', **request_kwargs)
         sleep_time = self.__DM.get_sleep_time(url)
         time.sleep(sleep_time)
@@ -482,6 +488,8 @@ class RequestsManager():
 
     async def async_request(self, method, url, **aiohttp_kwargs):
         """Makes a request async using aiohttp package."""
+        if self.__print_url:
+            print(url)
         S = self.__SM.get_session('async', **aiohttp_kwargs)
         sleep_time = self.__DM.get_sleep_time(url)
         await asyncio.sleep(sleep_time)
