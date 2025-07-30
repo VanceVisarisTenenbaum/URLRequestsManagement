@@ -280,7 +280,7 @@ class SessionManager():
         # So we start the loop to close the sessions automatically when
         # necessary if it not already running.
         if not self.__loop_running:
-            self.__close_all_sessions_loop__()
+            asyncio.create_task(self.__close_all_sessions_loop__())
         return session
 
     def get_all_sessions(self):
