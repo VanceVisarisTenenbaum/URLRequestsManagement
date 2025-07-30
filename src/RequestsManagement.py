@@ -345,9 +345,9 @@ class DomainManager():
     It handles their queues.
     """
 
-    def __init__(self):
+    def __init__(self, sleep_time: float | int = 0.25):
         self.__domains = dict()
-        self.__minimum_sleep_time = 0.05
+        self.__minimum_sleep_time = sleep_time
         return None
 
     def __get_host__(self, url):
@@ -465,10 +465,10 @@ class RequestsManager():
     It can be both sync or async.
     """
 
-    def __init__(self):
+    def __init__(self, sleep_time: int | float = 0.25):
 
         self.__SM = SessionManager()
-        self.__DM = DomainManager()
+        self.__DM = DomainManager(sleep_time)
 
         return None
 
