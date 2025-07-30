@@ -409,7 +409,7 @@ class DomainManager():
 
         """
         host = host = self.__get_host__(url)
-        last_time = self.__domain[host]['last_time']
+        last_time = self.__domains[host]['last_time']
         delta_current = time.time() - last_time
         if delta_current > self.__minimum_sleep_time:
             return self.__minimum_sleep_time
