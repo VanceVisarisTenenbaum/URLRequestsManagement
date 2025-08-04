@@ -247,6 +247,15 @@ class SessionManager():
         hash_str = hasher.hexdigest()
         return hash_str[:7]
 
+    def __get_loop__(self):
+        """Returns the event loop, or creats one if does not exist."""
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        return loop
+
     def get_session(self, mode, **request_kwargs):
         """
         Gathers a session based on the url, the mode and the params.
@@ -280,7 +289,8 @@ class SessionManager():
         # So we start the loop to close the sessions automatically when
         # necessary if it not already running.
         if not self.__loop_running:
-            asyncio.create_task(self.__close_all_sessions_loop__())
+            loop = self.__get_loop__()
+            loop.create_task(self.__close_all_sessions_loop__())
         return session
 
     def get_all_sessions(self):
@@ -319,7 +329,8 @@ class SessionManager():
         """Closes all sessions."""
         # This function isn't needed, but it is here to close all sessions
         # if the user needs it.
-        asyncio.create_task(self.__close_all_sessions_private__())
+        loop = self.__get_loop__()
+        loop.create_task(self.__close_all_sessions_private__())
         return None
 
     async def __close_all_sessions_loop__(self):
