@@ -378,7 +378,7 @@ class DomainManager():
         """
         return yarl.URL(url).host
 
-    def __add_domain__(self, url):
+    def __add_domain(self, url):
         """
         Extracts the domain from the url and adds the domain if needed.
 
@@ -425,7 +425,7 @@ class DomainManager():
 
         """
         host = self.__get_host(url)
-        self.__add_domain__(url)
+        self.__add_domain(url)
         last_time = self.__domains[host]['last_time']
         delta_current = time.time() - last_time
         self.__update_time(host)
@@ -447,7 +447,7 @@ class DomainManager():
         None.
         """
         host = self.__get_host(url)
-        self.__add_domain__(url)
+        self.__add_domain(url)
         self.__domains[host]['queue'].put(yarl.URL(url), False)
         # we shouldn't get a Full error since there is no limit.
         return None
@@ -475,6 +475,7 @@ class DomainManager():
     def get_lock(self, url: str):
         """Sets the host as blocked."""
         host = self.__get_host(url)
+        self.__add_domain(url)
         lock = self.__domains[host]['lock']
         return lock
 
