@@ -399,7 +399,7 @@ class DomainManager():
             self.__domains[host] = {
                 'queue': q.Queue(),
                 'last_time': 0,
-                'block': False
+                'lock': asyncio.Lock()
             }
         return None
 
@@ -472,39 +472,12 @@ class DomainManager():
         except q.Empty:
             return None
 
-    def block_host(self, url: str):
+    def get_lock(self, url: str):
         """Sets the host as blocked."""
         host = self.__get_host(url)
-        self.__domains[host]['blocked'] = True
-        return None
+        lock = self.__domains[host]['lock']
+        return lock
 
-    def unblock_host(self, url: str):
-        """Sets the host as unblocked."""
-        host = self.__get_host(url)
-        self.__domains[host]['blocked'] = False
-        return None
-
-    async def wait_until_unlocked(self,
-                                url: str,
-                                loop_wait_time: int = 1,
-                                max_loop_count: int = 1000):
-        """
-        Runs an async loop that stops when a host is no longer blocked.
-
-        This method runs a loop that checks if the host is blocked or not.
-
-        If it is blocked it repeats until it is no longer blocked.
-
-        The loop raises an error in case it repeated the max_loop_count value.
-        """
-        loop_count = 0
-        host = self.__get_host(url)
-        while True:
-            if self.__domains[host]['blocked']:
-                asyncio.sleep(loop_wait_time)
-                loop_count += 1
-            else:
-                return None
 
 
 class RequestsManager():
@@ -537,15 +510,14 @@ class RequestsManager():
 
     async def async_request(self, method, url, **aiohttp_kwargs):
         """Makes a request async using aiohttp package."""
-        self.__DM.wait_until_unlocked(url)
-        self.__DM.block_host(url)
-        if self.__print_url:
-            print(url)
-        S = self.__SM.get_session('async', **aiohttp_kwargs)
-        sleep_time = self.__DM.get_sleep_time(url)
-        await asyncio.sleep(sleep_time)
-        response = await S.request(method, url, **aiohttp_kwargs)
-        self.__DM.unblock_host(url)
+        lock = self.__DM.get_lock(url)
+        async with lock:  # This way the host is blocked until this one finish.
+            if self.__print_url:
+                print(url)
+                S = self.__SM.get_session('async', **aiohttp_kwargs)
+                sleep_time = self.__DM.get_sleep_time(url)
+                await asyncio.sleep(sleep_time)
+                response = await S.request(method, url, **aiohttp_kwargs)
         return response
 
     def close_all_sessions(self):
