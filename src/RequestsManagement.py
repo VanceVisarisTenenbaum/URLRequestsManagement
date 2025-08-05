@@ -361,7 +361,7 @@ class DomainManager():
         self.__minimum_sleep_time = sleep_time
         return None
 
-    def __get_host__(self, url):
+    def __get_host(self, url):
         """
         Gets the host (or domain) of a url.
 
@@ -392,13 +392,14 @@ class DomainManager():
         None.
 
         """
-        host = self.__get_host__(url)
+        host = self.__get_host(url)
         try:
             self.__domains[host]
         except KeyError:
             self.__domains[host] = {
                 'queue': q.Queue(),
-                'last_time': 0
+                'last_time': 0,
+                'block': False
             }
         return None
 
@@ -423,7 +424,7 @@ class DomainManager():
             DESCRIPTION.
 
         """
-        host = self.__get_host__(url)
+        host = self.__get_host(url)
         self.__add_domain__(url)
         last_time = self.__domains[host]['last_time']
         delta_current = time.time() - last_time
@@ -445,13 +446,13 @@ class DomainManager():
         -------
         None.
         """
-        host = self.__get_host__(url)
+        host = self.__get_host(url)
         self.__add_domain__(url)
         self.__domains[host]['queue'].put(yarl.URL(url), False)
         # we shouldn't get a Full error since there is no limit.
         return None
 
-    def get_url(self, host):
+    def get_url(self, host: str):
         """
         Gets the latest url from the specified host.
 
@@ -470,6 +471,40 @@ class DomainManager():
             return self.__domains[host]['queue'].get(False)
         except q.Empty:
             return None
+
+    def block_host(self, url: str):
+        """Sets the host as blocked."""
+        host = self.__get_host(url)
+        self.__domains[host]['blocked'] = True
+        return None
+
+    def unblock_host(self, url: str):
+        """Sets the host as unblocked."""
+        host = self.__get_host(url)
+        self.__domains[host]['blocked'] = False
+        return None
+
+    async def wait_until_unlocked(self,
+                                url: str,
+                                loop_wait_time: int = 1,
+                                max_loop_count: int = 1000):
+        """
+        Runs an async loop that stops when a host is no longer blocked.
+
+        This method runs a loop that checks if the host is blocked or not.
+
+        If it is blocked it repeats until it is no longer blocked.
+
+        The loop raises an error in case it repeated the max_loop_count value.
+        """
+        loop_count = 0
+        host = self.__get_host(url)
+        while True:
+            if self.__domains[host]['blocked']:
+                asyncio.sleep(loop_wait_time)
+                loop_count += 1
+            else:
+                return None
 
 
 class RequestsManager():
@@ -502,12 +537,15 @@ class RequestsManager():
 
     async def async_request(self, method, url, **aiohttp_kwargs):
         """Makes a request async using aiohttp package."""
+        self.__DM.wait_until_unlocked(url)
+        self.__DM.block_host(url)
         if self.__print_url:
             print(url)
         S = self.__SM.get_session('async', **aiohttp_kwargs)
         sleep_time = self.__DM.get_sleep_time(url)
         await asyncio.sleep(sleep_time)
         response = await S.request(method, url, **aiohttp_kwargs)
+        self.__DM.unblock_host(url)
         return response
 
     def close_all_sessions(self):
