@@ -15,7 +15,29 @@ import queue as q
 import time
 
 
-class SessionManager():
+class SingletonMeta(type):
+    """
+    Singleton Metaclass.
+
+    The Singleton class can be implemented in different ways in Python. Some
+    possible methods include: base class, decorator, metaclass. We will use the
+    metaclass because it is best suited for this purpose.
+
+    Source:
+        https://refactoring.guru/es/design-patterns/singleton/python/example
+    """
+
+    _instances = {}
+
+    def __call__(cls, *args, **kwargs):
+        """Checks instance is not already created."""
+        if cls not in cls._instances:
+            instance = super().__call__(*args, **kwargs)
+            cls._instances[cls] = instance
+        return cls._instances[cls]
+
+
+class SessionManager(metaclass=SingletonMeta):
     """
     The session manager, takes care of handling each available session.
 
@@ -349,7 +371,7 @@ class SessionManager():
         return None
 
 
-class DomainManager():
+class DomainManager(metaclass=SingletonMeta):
     """
     The domain manager handles each of the requested domains.
 
@@ -481,7 +503,7 @@ class DomainManager():
 
 
 
-class RequestsManager():
+class RequestsManager(metaclass=SingletonMeta):
     """
     Request manager handles allows you to make requests and/or schedule them.
 
