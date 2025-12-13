@@ -311,8 +311,9 @@ class SessionManager(metaclass=SingletonMeta):
         # So we start the loop to close the sessions automatically when
         # necessary if it not already running.
         if not self.__loop_running:
-            loop = self.__get_loop__()
-            loop.run_until_complete(self.__close_all_sessions_loop__())
+            #loop = self.__get_loop__()
+            self.__close_loop = asyncio.create_task(
+                self.__close_all_sessions_loop__())
         return session
 
     def get_all_sessions(self):
@@ -351,8 +352,10 @@ class SessionManager(metaclass=SingletonMeta):
         """Closes all sessions."""
         # This function isn't needed, but it is here to close all sessions
         # if the user needs it.
-        loop = self.__get_loop__()
-        loop.run_until_complete(self.__close_all_sessions_private__())
+        #loop = self.__get_loop__()
+        self.__close_loop.cancel()
+        asyncio.create_task(
+            self.__close_all_sessions_private__(), name='Close')
         return None
 
     async def __close_all_sessions_loop__(self):
