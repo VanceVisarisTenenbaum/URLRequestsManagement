@@ -312,7 +312,7 @@ class SessionManager(metaclass=SingletonMeta):
         # necessary if it not already running.
         if not self.__loop_running:
             loop = self.__get_loop__()
-            loop.create_task(self.__close_all_sessions_loop__())
+            loop.run_until_complete(self.__close_all_sessions_loop__())
         return session
 
     def get_all_sessions(self):
@@ -352,7 +352,7 @@ class SessionManager(metaclass=SingletonMeta):
         # This function isn't needed, but it is here to close all sessions
         # if the user needs it.
         loop = self.__get_loop__()
-        loop.create_task(self.__close_all_sessions_private__())
+        loop.run_until_complete(self.__close_all_sessions_private__())
         return None
 
     async def __close_all_sessions_loop__(self):
@@ -362,7 +362,8 @@ class SessionManager(metaclass=SingletonMeta):
             if self.__last_session_gathered_time is None:
                 self.__loop_running = False
                 return None
-            elif (time.time() - self.__last_session_gathered_time) == 600:
+            elif (time.time() - self.__last_session_gathered_time) >= 600:
+                print('Closing sessions automatically.')
                 await self.__close_all_sessions_private__()
                 self.__loop_running = True
                 return None

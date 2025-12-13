@@ -8,10 +8,10 @@ Created on Mon Jun 16 17:21:46 2025
 """
 
 
-from src import RequestsManagement as RM
+import test1
+import test2
 
-
-A1 = RM.RequestsManager()
-A2 = RM.RequestsManager(0.30, True)
+A1 = test1.A1
+A2 = test2.A2
 
 print(A1 is A2)
