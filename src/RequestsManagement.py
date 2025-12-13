@@ -313,7 +313,7 @@ class SessionManager(metaclass=SingletonMeta):
         if not self.__loop_running:
             #loop = self.__get_loop__()
             self.__close_loop = asyncio.create_task(
-                self.__close_all_sessions_loop__())
+                self.__close_all_sessions_loop__(), name='CloseLoop')
         return session
 
     def get_all_sessions(self):
@@ -368,7 +368,7 @@ class SessionManager(metaclass=SingletonMeta):
             elif (time.time() - self.__last_session_gathered_time) >= 600:
                 print('Closing sessions automatically.')
                 await self.__close_all_sessions_private__()
-                self.__loop_running = True
+                self.__loop_running = False
                 return None
             else:
                 await asyncio.sleep(600)
