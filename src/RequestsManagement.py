@@ -514,8 +514,8 @@ class RequestsManager(SessionManager, DomainManager, metaclass=SingletonMeta):
                  sleep_time: int | float = 0.25,
                  print_url: bool = False
                  ):
-        SessionManager().__init__()
-        DomainManager().__init__(sleep_time=sleep_time)
+        SessionManager.__init__(self)
+        DomainManager.__init__(self, sleep_time=sleep_time)
         self.__print_url = print_url
         return None
 
