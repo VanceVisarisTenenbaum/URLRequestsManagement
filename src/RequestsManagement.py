@@ -307,13 +307,7 @@ class SessionManager(metaclass=SingletonMeta):
         a session
         """
         self.__last_session_gathered_time = time.time()
-        # This function is called when a request will be made.
-        # So we start the loop to close the sessions automatically when
-        # necessary if it not already running.
-        if not self.__loop_running:
-            #loop = self.__get_loop__()
-            self.__close_loop = asyncio.create_task(
-                self.__close_all_sessions_loop__(), name='CloseLoop')
+
         return session
 
     def get_all_sessions(self):
@@ -348,30 +342,32 @@ class SessionManager(metaclass=SingletonMeta):
                     print(f'no-metadata ({mode}): was_closed.')
         return None
 
-    def close_all_sessions(self):
+    async def close_all_sessions(self):
         """Closes all sessions."""
         # This function isn't needed, but it is here to close all sessions
         # if the user needs it.
-        #loop = self.__get_loop__()
-        self.__close_loop.cancel()
-        asyncio.create_task(
-            self.__close_all_sessions_private__(), name='Close')
+        await self.__close_all_sessions_private__()
         return None
 
-    async def __close_all_sessions_loop__(self):
-        """Closes all sessions automatically if condition is met."""
+    async def close_all_sessions_loop(self, session_timer: int = 600):
+        """
+        Closes all sessions if they hadn't been used in the specified time.
+
+        session_time: int
+            The required time for sessions to be closed.
+        """
         self.__loop_running = True
         while True:
             if self.__last_session_gathered_time is None:
                 self.__loop_running = False
                 return None
-            elif (time.time() - self.__last_session_gathered_time) >= 600:
+            elif (time.time() - self.__last_session_gathered_time) >= session_timer:
                 print('Closing sessions automatically.')
                 await self.__close_all_sessions_private__()
                 self.__loop_running = False
                 return None
             else:
-                await asyncio.sleep(600)
+                await asyncio.sleep(session_timer)
         return None
 
 
@@ -507,7 +503,7 @@ class DomainManager(metaclass=SingletonMeta):
 
 
 
-class RequestsManager(metaclass=SingletonMeta):
+class RequestsManager(DomainManager, SessionManager, metaclass=SingletonMeta):
     """
     Request manager handles allows you to make requests and/or schedule them.
 
@@ -519,9 +515,6 @@ class RequestsManager(metaclass=SingletonMeta):
                  print_url: bool = False
                  ):
 
-        self.__SM = SessionManager()
-        self.__DM = DomainManager(sleep_time)
-
         self.__print_url = print_url
         return None
 
@@ -529,25 +522,20 @@ class RequestsManager(metaclass=SingletonMeta):
         """Makes a request using requests package."""
         if self.__print_url:
             print(url)
-        S = self.__SM.get_session('sync', **request_kwargs)
-        sleep_time = self.__DM.get_sleep_time(url)
+        S = self.get_session('sync', **request_kwargs)
+        sleep_time = self.get_sleep_time(url)
         time.sleep(sleep_time)
         response = S.request(method, url, **request_kwargs)
         return response
 
     async def async_request(self, method, url, **aiohttp_kwargs):
         """Makes a request async using aiohttp package."""
-        lock = self.__DM.get_lock(url)
+        lock = self.get_lock(url)
         async with lock:  # This way the host is blocked until this one finish.
             if self.__print_url:
                 print(url)
-                S = self.__SM.get_session('async', **aiohttp_kwargs)
-                sleep_time = self.__DM.get_sleep_time(url)
-                await asyncio.sleep(sleep_time)
-                response = await S.request(method, url, **aiohttp_kwargs)
+            S = self.get_session('async', **aiohttp_kwargs)
+            sleep_time = self.get_sleep_time(url)
+            await asyncio.sleep(sleep_time)
+            response = await S.request(method, url, **aiohttp_kwargs)
         return response
-
-    def close_all_sessions(self):
-        """Closes all sessions."""
-        self.__SM.close_all_sessions()
-        return None
