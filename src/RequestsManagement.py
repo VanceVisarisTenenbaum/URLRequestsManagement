@@ -503,7 +503,7 @@ class DomainManager(metaclass=SingletonMeta):
 
 
 
-class RequestsManager(DomainManager, SessionManager, metaclass=SingletonMeta):
+class RequestsManager(SessionManager, DomainManager, metaclass=SingletonMeta):
     """
     Request manager handles allows you to make requests and/or schedule them.
 
@@ -514,7 +514,8 @@ class RequestsManager(DomainManager, SessionManager, metaclass=SingletonMeta):
                  sleep_time: int | float = 0.25,
                  print_url: bool = False
                  ):
-        super().__init__(sleep_time=sleep_time)
+        SessionManager().__init__()
+        DomainManager().__init__(sleep_time=sleep_time)
         self.__print_url = print_url
         return None
 
